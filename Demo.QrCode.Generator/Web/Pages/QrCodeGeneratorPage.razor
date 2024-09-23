@@ -1,0 +1,30 @@
+﻿@page "/qrcode-generator"
+@using Demo.QrCode.Generator.Services
+@using Microsoft.AspNetCore.Components.Forms
+
+<h2>QR Code Generator</h2>
+
+@if (!string.IsNullOrEmpty(QrCode))
+{
+    <img src="data:image/png;base64,@QrCode" alt="QR Code" width="200" height="200" />
+}
+
+@code {
+    public string QrCode { get; set; } = string.Empty;
+
+    [Inject]
+    public IQrCodeService Service { get; set; } = null!;
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            byte[] qrCodeBytes = await Service.GerarQrCodeAsync(new GerarQrCodeRequest { Url = "www.google.com.br" });
+            QrCode = Convert.ToBase64String(qrCodeBytes);
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+    }
+}

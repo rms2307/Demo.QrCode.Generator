@@ -1,10 +1,14 @@
-using QRCoder;
-using SixLabors.ImageSharp;
+using Demo.QrCode.Generator.Services;
+using Demo.QrCode.Generator.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddBlazorServer();
+
+builder.Services.AddTransient<IQrCodeService, QrCodeService>();
 
 var app = builder.Build();
 
@@ -14,35 +18,23 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseBlazorServer();
 
 app.MapPost("/gerar-qrcode", GerarQrCodeAsync).WithName("GerarQrCode").WithOpenApi();
 
 app.Run();
 
-async Task<IResult> GerarQrCodeAsync(GerarQrCodeRequest request)
+async Task<IResult> GerarQrCodeAsync(IQrCodeService service, GerarQrCodeRequest request)
 {
     const string ImageType = "image/png";
 
     try
     {
-        const int pixelsPerModule = 25;
-        QRCodeData qrCodeData;
-        using (QRCodeGenerator qrGenerator = new())
-        {
-            qrCodeData = qrGenerator.CreateQrCode(request.Url, QRCodeGenerator.ECCLevel.Q);
-        }
-
-        var qrCode = new Base64QRCode(qrCodeData);
-        string qrCodeImageAsBase64 = qrCode.GetGraphic(pixelsPerModule, Color.Black, Color.White);
-
-        byte[] qrCodeBytes = Convert.FromBase64String(qrCodeImageAsBase64);
-
-        await Task.Delay(600);
-        return TypedResults.File(qrCodeBytes, ImageType);
+        byte[] qrCode = await service.GerarQrCodeAsync(request);
+        return TypedResults.File(qrCode, ImageType);
     }
-    catch
+    catch (Exception ex)
     {
-        throw;
+        return TypedResults.BadRequest(ex.Message);
     }
 }
